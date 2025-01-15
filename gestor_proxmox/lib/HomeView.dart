@@ -8,7 +8,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-  
+  final List<int> numbers = List.generate(5, (index) => index + 1);
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
