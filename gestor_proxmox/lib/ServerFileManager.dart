@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
-import 'package:ftpclient/ftpclient.dart';
+//scp per cridar per comandes
+//import 'package:ftpclient/ftpclient.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ServerFileManager {
   late SSHClient _sshClient;
-  late FTPClient _ftpClient;
+  //late FTPClient _ftpClient;
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -95,7 +96,7 @@ class ServerFileManager {
     required int port,
     required String user,
     required String password,
-  }) {
+  }) async {
     _ftpClient = FTPClient(
       host,
       port: port,
