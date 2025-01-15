@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+//Hacer expand listview
 
 class HomeView extends StatefulWidget {
   @override
@@ -29,22 +29,20 @@ class _HomeViewState extends State<HomeView> {
           centerTitle: false,
           elevation: 2,
         ),
-        
         body: SafeArea(
-          top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              
-              
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Column(
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                //columna listview
+                Container(
+                  width: 200,
+                  child: Column(
                     mainAxisSize: MainAxisSize.max,
                     children: [
-                      Container(
-                        width: 200,
+                      Expanded(
                         child: ListView(
                           padding: EdgeInsets.zero,
                           shrinkWrap: true,
@@ -54,18 +52,17 @@ class _HomeViewState extends State<HomeView> {
                       ),
                     ],
                   ),
-                  Container(
-                    width: 1240,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                    ),
+                ),
+                // columna Informacion del server  
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
                   ),
-                ],
-)
-
-            ],
-            
+                ),
+              ],
+            ),
           ),
         ),
       ),
