@@ -1,13 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
-//scp per cridar per comandes
-//import 'package:ftpclient/ftpclient.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ServerFileManager {
   late SSHClient _sshClient;
-  //late FTPClient _ftpClient;
+
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -40,7 +38,7 @@ class ServerFileManager {
     await file.writeAsString(jsonEncode(config));
   }
 
-  Future<void> addServer(String name, String host, int port, String user, String password) async {
+  Future<void> addServer(String name, String host, int port, String user, String keyFilePath) async {
     final config = await readConfig();
     if (config['servers'].containsKey(name)) {
       throw Exception('Ya existe un servidor con el nombre "$name".');
@@ -49,7 +47,7 @@ class ServerFileManager {
       'host': host,
       'port': port,
       'user': user,
-      'password': password,
+      'keyFilePath': keyFilePath,
     };
     await writeConfig(config);
   }
@@ -77,13 +75,20 @@ class ServerFileManager {
     required String host,
     required int port,
     required String user,
-    required String password,
+    required String keyFilePath,
   }) async {
     final socket = await SSHSocket.connect(host, port);
+    final keyFile = File(keyFilePath);
+    if (!(await keyFile.exists())) {
+      throw Exception('El archivo de clave privada no existe: $keyFilePath');
+    }
+    final keyContents = await keyFile.readAsString();
     _sshClient = SSHClient(
       socket,
       username: user,
-      onPasswordRequest: () => password,
+      identities: [
+        SSHKeyPair.fromPem(keyContents),
+      ],
     );
   }
 
@@ -91,28 +96,6 @@ class ServerFileManager {
     _sshClient.close();
   }
 
-  Future<void> connectFTP({
-    required String host,
-    required int port,
-    required String user,
-    required String password,
-  }) async {
-    _ftpClient = FTPClient(
-      host,
-      port: port,
-      user: user,
-      pass: password,
-    );
-    _ftpClient.connect();
-  }
-
-  void disconnectFTP() {
-    _ftpClient.disconnect();
-  }
-
-  Future<void> renameFile(String oldPath, String newPath) async {
-    await _sshClient.execute('mv $oldPath $newPath');
-  }
 
   Future<void> downloadFile(String remotePath, String localPath) async {
     final file = File(localPath);
@@ -155,14 +138,22 @@ class ServerFileManager {
     await _sshClient.execute('unzip -o $remotePath -d $destination');
   }
 
-    Future<void> configurePortForwarding(int localPort, String remoteHost, int remotePort) async {
+    Future<void> configurePortForwardingManual(int localPort, String remoteHost, int remotePort) async {
         await _sshClient.execute('ssh -L $localPort:$remoteHost:$remotePort');
     }
+
+  Future<void> configurePortForwarding(int localPort, String remoteHost, int remotePort) async {
+    await _sshClient.forwardLocal(localPort, remoteHost, remotePort);
+  }
 
     Future<void> compressFilesRemote(String path, String destination) async {
     await _sshClient.execute('zip -r $destination $path');
     }
 
+
+  Future<void> renameFile(String oldPath, String newPath) async {
+    await _sshClient.execute('mv $oldPath $newPath');
+  }
 
     Future<List<Map<String, dynamic>>> listDirectory(String path) async {
         final sftp = await _sshClient.sftp();
