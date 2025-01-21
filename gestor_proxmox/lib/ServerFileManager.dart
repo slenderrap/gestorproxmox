@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:path_provider/path_provider.dart';
 
+
 class ServerFileManager {
   late SSHClient _sshClient;
 
@@ -86,10 +87,11 @@ class ServerFileManager {
     _sshClient = SSHClient(
       socket,
       username: user,
-      identities: [
+      identities:
         SSHKeyPair.fromPem(keyContents),
-      ],
+
     );
+    print("connexio correte");
   }
 
   void disconnectSSH() {
@@ -126,12 +128,12 @@ class ServerFileManager {
 
   Future<String> getFileInfo(String path) async {
     final result = await _sshClient.execute('ls -ld $path');
-    return result;
+    return result.toString();
   }
 
   Future<String> getFilePermissions(String path) async {
     final result = await _sshClient.execute('stat -c "%A" $path');
-    return result.trim();
+    return result.toString();
   }
 
   Future<void> unzipFile(String remotePath, String destination) async {
@@ -143,7 +145,7 @@ class ServerFileManager {
     }
 
   Future<void> configurePortForwarding(int localPort, String remoteHost, int remotePort) async {
-    await _sshClient.forwardLocal(localPort, remoteHost, remotePort);
+    await _sshClient.forwardLocal(remoteHost, remotePort,localHost: 'localhost',localPort: localPort);
   }
 
     Future<void> compressFilesRemote(String path, String destination) async {
@@ -155,23 +157,23 @@ class ServerFileManager {
     await _sshClient.execute('mv $oldPath $newPath');
   }
 
-    Future<List<Map<String, dynamic>>> listDirectory(String path) async {
-        final sftp = await _sshClient.sftp();
-        final entries = await sftp.opendir(path);
-
-        List<Map<String, dynamic>> files = [];
-
-        await for (final entry in entries) {
-            files.add({
-                'filename': entry.filename,
-                'isDirectory': entry.attrs.isDirectory,
-                'size': entry.attrs.size,
-                'permissions': entry.attrs.permissions,
-            });
-        }
-
-        return files;
-    }
+    // Future<List<Map<String, dynamic>>> listDirectory(String path) async {
+    //     final sftp = await _sshClient.sftp();
+    //     final entries = await sftp.opendir(path);
+    //
+    //     List<Map<String, dynamic>> files = [];
+    //
+    //     await for (final entry in entries) {
+    //         files.add({
+    //             'filename': entry.filename,
+    //             'isDirectory': entry.attrs.isDirectory,
+    //             'size': entry.attrs.size,
+    //             'permissions': entry.attrs.permissions,
+    //         });
+    //     }
+    //
+    //     return files;
+    // }
 
   Future<void> manageServer(String path, String action) async {
     if (action == 'start') {
@@ -182,4 +184,8 @@ class ServerFileManager {
       await _sshClient.execute('pkill -f java');
     }
   }
+}
+
+extension on SSHClient {
+  get scp => null;
 }

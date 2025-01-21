@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'widgets/TextFieldWithTitle.dart';
-
+import 'ServerFileManager.dart';
 class HomeView extends StatefulWidget {
   @override
   _HomeViewState createState() => _HomeViewState();
@@ -8,11 +8,18 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-  final List<int> numbers = List.generate(5, (index) => index + 1);
+  final List<String> _servidors = ["Servidor1","Servidor2","Servidor3","Servidor4"];
   final TextEditingController _controllerNom = TextEditingController();
   final TextEditingController _controllerServidor = TextEditingController();
   final TextEditingController _controllerPort = TextEditingController();
   final TextEditingController _controllerClau = TextEditingController();
+  int? _selectedServer;
+  void clearFields(){
+    _controllerNom.clear();
+    _controllerServidor.clear();
+    _controllerPort.clear();
+    _controllerClau.clear();
+  }
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -57,22 +64,36 @@ class _HomeViewState extends State<HomeView> {
                         ),
                     ),
                         Expanded(
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            shrinkWrap: true,
-                            scrollDirection: Axis.vertical,
-                            children: numbers
-                                .map((number) => Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0,vertical: 4.0),
-                              child: Align(
-                                alignment: Alignment(-0.8,0.0),
-                                child: Text('$number',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold,)
+                          child: ListView.builder(
+                            itemCount: _servidors.length,
+                            itemBuilder: (context, index) {
+                              final isSelected = _selectedServer == index;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedServer = index;
+                                    clearFields();
+                                  });
+                                },
+                                child: Container(
+                                  color: isSelected
+                                      ? Colors.blue[300]
+                                      : Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  child: Text(
+                                    _servidors[index],
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ),
                                 ),
-                              )
-
-                            ))
-                                .toList()
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -91,7 +112,45 @@ class _HomeViewState extends State<HomeView> {
                         TextFieldWithTitle(title: "Servidor",  controller: _controllerServidor),const SizedBox(height:40),
                         TextFieldWithTitle(title: "Port",  controller: _controllerPort),const SizedBox(height:40),
                         TextFieldWithTitle(title: "Clau",  controller: _controllerClau),const SizedBox(height:40),
-                    ],),
+
+                        const Spacer(),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                        ),
+                        Padding(padding: const EdgeInsets.only(bottom: 40),
+                        child:
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              IconButton( icon: const Icon(Icons.delete, color: Colors.black87,),onPressed: (){
+                                clearFields();
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Camps netejats")),);
+                              }),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  backgroundColor: Colors.deepPurple,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text("Afegeir a preferits"),
+                                onPressed: (){
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Afegit a preferits")),);
+                              }),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    foregroundColor: Colors.white,
+                                ),
+                                child: Text("Connectar"),
+                                onPressed: (){
+                                  ServerFileManager().connectSSH(host: _controllerServidor.text, port: int.parse(_controllerPort.text), user: _controllerNom.text, keyFilePath: _controllerClau.text);
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Intentant connexio")),);
+                                }
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                  ),
                   ),
                   ),
 
