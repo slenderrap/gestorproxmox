@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class TextFieldWithTitle extends StatelessWidget {
-  final String title;        // Títol que es mostrarà dins del camp de text.
-  final TextEditingController controller;  // Controlador per gestionar el text.
+  final String title;
+  final TextEditingController controller;
 
   const TextFieldWithTitle({
     Key? key,
@@ -13,11 +13,11 @@ class TextFieldWithTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller,  // Connectem el controlador al TextField.
+      controller: controller,
       decoration: InputDecoration(
-        prefixText: title+": ",  // El títol es mostra dins del camp de text.
+        prefixText: title+": ",
         prefixStyle: TextStyle(
-          color: Colors.black,  // Estil per al títol dins del camp.
+          color: Colors.black,
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),
