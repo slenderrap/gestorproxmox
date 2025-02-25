@@ -12,7 +12,8 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   List<Server> _servidors=[];
-  final TextEditingController _controllerNom = TextEditingController();
+  final TextEditingController _controllerNomServer = TextEditingController();
+  final TextEditingController _controllerNomUsuari = TextEditingController();  
   final TextEditingController _controllerServidor = TextEditingController();
   final TextEditingController _controllerPort = TextEditingController();
   final TextEditingController _controllerClau = TextEditingController();
@@ -33,14 +34,15 @@ class _HomeViewState extends State<HomeView> {
 void _afegirServidor() async {
   setState(() {
     clearFields();
-    _servidors.add(Server("Nou servidor ${_servidors.length}", "", "", ""));
+    _servidors.add(Server("Nou servidor ${_servidors.length}", "", "", "", ""));
     _selectedServer = _servidors.length - 1; // Seleccionar el nuevo servidor
   });
     
   }
 
   void clearFields() {
-    _controllerNom.clear();
+    _controllerNomServer.clear();
+    _controllerNomUsuari.clear();
     _controllerServidor.clear();
     _controllerPort.clear();
     _controllerClau.clear();
@@ -48,7 +50,8 @@ void _afegirServidor() async {
 
   String ValidateFields(){
     
-    if(_controllerNom.text.toString()=="") return "Has d'introduir un nom";
+    if(_controllerNomServer.text.toString()=="") return "Has d'introduir un nom";
+    if(_controllerNomUsuari.text.toString()=="") return "Has d'introduir un nom d'usuari";
     if(_controllerServidor.text.toString()=="")  return "Has d'introduir un servidor";
     if(_controllerPort.text.toString()=="")  return "Has d'introduir un port";
     if(_controllerClau.text.toString()=="")  return "Has d'introduir un rsa";
@@ -110,7 +113,8 @@ void _afegirServidor() async {
                     onTap: () {
                       setState(() {
                         _selectedServer = index;
-                        _controllerNom.text=_servidors[_selectedServer!].nom;
+                        _controllerNomServer.text=_servidors[_selectedServer!].nom;
+                        _controllerNomUsuari.text=_servidors[_selectedServer!].nomUsuari;
                         _controllerServidor.text=_servidors[_selectedServer!].direccio;
                         _controllerPort.text=_servidors[_selectedServer!].port;
                         _controllerClau.text=_servidors[_selectedServer!].rsa;
@@ -153,7 +157,9 @@ void _afegirServidor() async {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextFieldWithTitle(title: "Nom", controller: _controllerNom),
+            TextFieldWithTitle(title: "Nom", controller: _controllerNomServer),
+            const SizedBox(height: 40),
+            TextFieldWithTitle(title: "Usuari", controller: _controllerNomUsuari),
             const SizedBox(height: 40),
             TextFieldWithTitle(title: "Servidor", controller: _controllerServidor),
             const SizedBox(height: 40),
@@ -200,7 +206,8 @@ void _afegirServidor() async {
                 else{
                   setState(() {
                     
-                    _servidors[_selectedServer!].nom=_controllerNom.text.toString();
+                    _servidors[_selectedServer!].nom=_controllerNomServer.text.toString();
+                    _servidors[_selectedServer!].nomUsuari=_controllerNomUsuari.text.toString();
                     _servidors[_selectedServer!].direccio=_controllerServidor.text.toString();
                     _servidors[_selectedServer!].port=_controllerPort.text.toString();
                     _servidors[_selectedServer!].rsa=_controllerClau.text.toString();
@@ -221,7 +228,7 @@ void _afegirServidor() async {
           TextButton(
             style: TextButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
             child: const Text("Connectar"),
-            onPressed: () {
+            onPressed: () async {
               String error=ValidateFields();
               if (error!="")
               {
@@ -248,13 +255,22 @@ void _afegirServidor() async {
                   },
                 );
 
-                  ServerFileManager().connectSSH(
-                    host: _controllerServidor.text,
-                    port: int.parse(_controllerPort.text),
-                    user: _controllerNom.text,
-                    keyFilePath: _controllerClau.text,
-                  );
-              
+                bool conectat = await ServerFileManager().connectSSH(
+                  host: _controllerServidor.text,
+                  username: _controllerNomUsuari.text,
+                  port: int.parse(_controllerPort.text),
+                  keyFilePath: _controllerClau.text,
+                );
+                if (!conectat){
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(scaffoldKey.currentContext!).showSnackBar(
+                    SnackBar(content: Text("No s'ha pogut connectar al servidor"),backgroundColor: Colors.red,));
+                }
+                else{
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(scaffoldKey.currentContext!).showSnackBar(
+                    SnackBar(content: Text("Connectat"),backgroundColor: Colors.green,));
+                }
               
               }
 

@@ -72,28 +72,35 @@ class ServerFileManager {
     return config['servers'][name];
   }
 
-  Future<void> connectSSH({
+  Future<bool> connectSSH({
     required String host,
+    required String username,
     required int port,
-    required String user,
     required String keyFilePath,
   }) async {
-    final socket = await SSHSocket.connect(host, port);
-    final keyFile = File(keyFilePath);
-    if (!(await keyFile.exists())) {
-      throw Exception('El archivo de clave privada no existe: $keyFilePath');
+
+    try{
+        final socket = await SSHSocket.connect(host, port);
+        final keyFile = File(keyFilePath);
+        if (!(await keyFile.exists())) {
+          print("la clave no existe");
+          throw Exception( "Error: No existe el archivo");
+        }
+        print("la clave existe");
+
+        final keyContents = await keyFile.readAsString();
+        _sshClient = SSHClient(
+          socket,
+          username: username,
+          identities:
+            SSHKeyPair.fromPem(keyContents),
+
+        );
+        return true;
+      }catch (e){
+        return false;
+      }
     }
-    final keyContents = await keyFile.readAsString();
-    _sshClient = SSHClient(
-      socket,
-      username: user,
-      identities:
-        SSHKeyPair.fromPem(keyContents),
-
-    );
-    print("connexio correte");
-  }
-
   void disconnectSSH() {
     _sshClient.close();
   }

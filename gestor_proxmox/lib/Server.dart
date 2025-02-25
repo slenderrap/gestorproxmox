@@ -1,10 +1,11 @@
 class Server{
   String _nom;
+  String _nomUsuari;
   String _direccio;
   String _port;
   String _rsa;
 
-  Server(this._nom, this._direccio, this._port, this._rsa);
+  Server(this._nom, this._nomUsuari, this._direccio, this._port, this._rsa);
 
   String get rsa => _rsa;
 
@@ -30,9 +31,17 @@ class Server{
     _nom = value;
   }
 
+  String get nomUsuari => _nomUsuari;
+
+  set nomUsuari(String value) {
+    _nomUsuari = value;
+  }
+
+
   Map<String, dynamic> toJson(){
     return {
       'nom': _nom,
+      'nomUsuari': _nomUsuari,
       'direccio': _direccio,
       'port': _port,
       'rsa': _rsa
@@ -42,6 +51,7 @@ class Server{
   factory Server.fromJson(Map<String, dynamic> json){
     return Server(
       json['nom'] ?? '', 
+      json['nomUsuari'] ?? '',
       json['direccio'] ?? '', 
       json['port'] ?? '', 
       json['rsa'] ?? '');
