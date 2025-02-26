@@ -1,4 +1,6 @@
+import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/material.dart';
+import 'package:gestor_proxmox/ServerView.dart';
 import 'widgets/TextFieldWithTitle.dart';
 import 'ServerFileManager.dart';
 import 'package:gestor_proxmox/GestioPreferits.dart';
@@ -255,25 +257,30 @@ void _afegirServidor() async {
                   },
                 );
 
-                bool conectat = await ServerFileManager().connectSSH(
+                SSHClient? conectat = await ServerFileManager().connectSSH(
                   host: _controllerServidor.text,
                   username: _controllerNomUsuari.text,
                   port: int.parse(_controllerPort.text),
                   keyFilePath: _controllerClau.text,
                 );
-                if (!conectat){
+                if (conectat != null){
+                  await GestioPreferits.guardarDades(_servidors[_selectedServer!]);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(scaffoldKey.currentContext!).showSnackBar(
-                    SnackBar(content: Text("No s'ha pogut connectar al servidor"),backgroundColor: Colors.red,));
+                    SnackBar(content: Text("Connectat"),backgroundColor: Colors.green,));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                    builder: (context) => ServerView(connection: conectat, nomServer: _controllerNomServer.text,),
+                    ),
+                  );
                 }
                 else{
                   Navigator.pop(context);
                   ScaffoldMessenger.of(scaffoldKey.currentContext!).showSnackBar(
-                    SnackBar(content: Text("Connectat"),backgroundColor: Colors.green,));
+                    SnackBar(content: Text("No s'ha pogut connectar al servidor"),backgroundColor: Colors.red,));
                 }
-              
               }
-
             },
           ),
         ],

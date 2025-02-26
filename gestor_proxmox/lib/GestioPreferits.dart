@@ -25,10 +25,16 @@ class GestioPreferits {
         }
 
       
+    }else{
+      arxiu.create();
     }
-    if (!preferits.any((s) => s.nom == serverData.nom)) {
-      preferits.add(serverData);
+    int index = preferits.indexWhere((s) => s.nom  == serverData.nom);
+    if (index == -1){
+      preferits.add(serverData);  
+    }else{
+      preferits[index] = serverData;
     }
+    
     await arxiu.writeAsString(jsonEncode(preferits));
   }
 

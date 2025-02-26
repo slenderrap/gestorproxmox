@@ -72,7 +72,7 @@ class ServerFileManager {
     return config['servers'][name];
   }
 
-  Future<bool> connectSSH({
+  Future<SSHClient?> connectSSH({
     required String host,
     required String username,
     required int port,
@@ -96,9 +96,9 @@ class ServerFileManager {
             SSHKeyPair.fromPem(keyContents),
 
         );
-        return true;
+        return _sshClient;
       }catch (e){
-        return false;
+        return null;
       }
     }
   void disconnectSSH() {
