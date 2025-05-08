@@ -71,7 +71,7 @@ void _afegirServidor() async {
         key: scaffoldKey,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: const Color.fromARGB(255, 151, 116, 250),
           automaticallyImplyLeading: false,
           title: Text(
             'Pantalla d\'inici',
@@ -155,7 +155,7 @@ void _afegirServidor() async {
     return Expanded(
       flex: 2,
       child: Container(
-        decoration: const BoxDecoration(color: Colors.orange),
+        decoration: const BoxDecoration(color: Color.fromARGB(255, 169, 206, 188)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

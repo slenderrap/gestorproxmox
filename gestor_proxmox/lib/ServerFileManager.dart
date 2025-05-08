@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-
 
 class ServerFileManager {
   late SSHClient _sshClient;
-
+  String actualPath = "/home/super";
+  ServerFileManager();
+   ServerFileManager.withConnection(this._sshClient);
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -39,7 +41,8 @@ class ServerFileManager {
     await file.writeAsString(jsonEncode(config));
   }
 
-  Future<void> addServer(String name, String host, int port, String user, String keyFilePath) async {
+  Future<void> addServer(String name, String host, int port, String user,
+      String keyFilePath) async {
     final config = await readConfig();
     if (config['servers'].containsKey(name)) {
       throw Exception('Ya existe un servidor con el nombre "$name".');
@@ -78,39 +81,73 @@ class ServerFileManager {
     required int port,
     required String keyFilePath,
   }) async {
-
-    try{
-        final socket = await SSHSocket.connect(host, port);
-        final keyFile = File(keyFilePath);
-        if (!(await keyFile.exists())) {
-          print("la clave no existe");
-          throw Exception( "Error: No existe el archivo");
-        }
-        print("la clave existe");
-
-        final keyContents = await keyFile.readAsString();
-        _sshClient = SSHClient(
-          socket,
-          username: username,
-          identities:
-            SSHKeyPair.fromPem(keyContents),
-
-        );
-        return _sshClient;
-      }catch (e){
-        return null;
+    try {
+      final socket = await SSHSocket.connect(host, port);
+      final keyFile = File(keyFilePath);
+      if (!(await keyFile.exists())) {
+        throw Exception("Error: No existe el archivo id_rsa");
       }
+
+      final keyContents = await keyFile.readAsString();
+      _sshClient = SSHClient(
+        socket,
+        username: username,
+        identities: SSHKeyPair.fromPem(keyContents),
+      );
+      return _sshClient;
+    } catch (e) {
+      return null;
     }
+  }
+
   void disconnectSSH() {
     _sshClient.close();
   }
 
+Future<void> downloadFile(String localPath, String item) async {
+  try {
+    // Construir la ruta remota completa
+    final serverPath = "$actualPath/$item";
+    print("Descargando archivo desde: $serverPath");
 
-  Future<void> downloadFile(String remotePath, String localPath) async {
+    // Crear el archivo local
     final file = File(localPath);
+    await file.create(recursive: true);
+
+    // Abrir un flujo de escritura local
     final sink = file.openWrite();
-    await _sshClient.scp.download(remotePath, sink);
+
+    // Usar SFTP para descargar el archivo
+    final sftp = await _sshClient.sftp();
+    final remoteFile = await sftp.open(serverPath, mode: SftpFileOpenMode.read);
+    final data = await remoteFile.read();
+    await sink.addStream(data);
     await sink.close();
+
+    print("Archivo descargado exitosamente: $item");
+  } catch (e) {
+    print("Error al descargar el archivo: $e");
+    throw Exception("No se pudo descargar el archivo: $e");
+  }
+}
+
+  Future<void> enterDirectory(String path) async {
+    if (path == "..") {
+      // Subir un nivel de directorio
+      final parentPath = actualPath.split('/').sublist(0, actualPath.split('/').length - 1).join('/');
+      actualPath = parentPath.isEmpty ? "/" : parentPath;
+    } else {
+      // Navegar hacia el directorio seleccionado
+      actualPath = "$actualPath/$path".replaceAll("//", "/");
+    }
+  }
+
+  Future<String> currentDirectory() async{
+    final path = await _sshClient.execute("pwd");
+    final stdout = await utf8.decodeStream(path.stdout);
+    path.close();
+    return stdout; 
+
   }
 
   Future<void> uploadFile(String localPath, String remotePath) async {
@@ -125,17 +162,20 @@ class ServerFileManager {
       return;
     }
     await uploadFile(tempZip, '$remotePath.zip');
-    await _sshClient.execute('unzip -o $remotePath.zip -d $remotePath && rm $remotePath.zip');
+    await _sshClient.execute(
+        'unzip -o $remotePath.zip -d $remotePath && rm $remotePath.zip');
     await File(tempZip).delete();
   }
 
   Future<void> deleteFile(String path) async {
-    await _sshClient.execute('rm -rf $path');
+    await _sshClient.execute('rm -rf $actualPath/$path');
   }
 
   Future<String> getFileInfo(String path) async {
-    final result = await _sshClient.execute('ls -ld $path');
-    return result.toString();
+    final result = await _sshClient.execute('ls -l $path');
+    final stdout = await utf8.decodeStream(result.stdout);
+    result.close();
+    return stdout;
   }
 
   Future<String> getFilePermissions(String path) async {
@@ -147,46 +187,31 @@ class ServerFileManager {
     await _sshClient.execute('unzip -o $remotePath -d $destination');
   }
 
-    Future<void> configurePortForwardingManual(int localPort, String remoteHost, int remotePort) async {
-        await _sshClient.execute('ssh -L $localPort:$remoteHost:$remotePort');
-    }
-
-  Future<void> configurePortForwarding(int localPort, String remoteHost, int remotePort) async {
-    await _sshClient.forwardLocal(remoteHost, remotePort,localHost: 'localhost',localPort: localPort);
+  Future<void> configurePortForwardingManual(
+      int localPort, String remoteHost, int remotePort) async {
+    await _sshClient.execute('ssh -L $localPort:$remoteHost:$remotePort');
   }
 
-    Future<void> compressFilesRemote(String path, String destination) async {
-    await _sshClient.execute('zip -r $destination $path');
-    }
+  Future<void> configurePortForwarding(
+      int localPort, String remoteHost, int remotePort) async {
+    await _sshClient.forwardLocal(remoteHost, remotePort,
+        localHost: 'localhost', localPort: localPort);
+  }
 
+  Future<void> compressFilesRemote(String path, String destination) async {
+    await _sshClient.execute('zip -r $destination $path');
+  }
 
   Future<void> renameFile(String oldPath, String newPath) async {
     await _sshClient.execute('mv $oldPath $newPath');
   }
 
-    // Future<List<Map<String, dynamic>>> listDirectory(String path) async {
-    //     final sftp = await _sshClient.sftp();
-    //     final entries = await sftp.opendir(path);
-    //
-    //     List<Map<String, dynamic>> files = [];
-    //
-    //     await for (final entry in entries) {
-    //         files.add({
-    //             'filename': entry.filename,
-    //             'isDirectory': entry.attrs.isDirectory,
-    //             'size': entry.attrs.size,
-    //             'permissions': entry.attrs.permissions,
-    //         });
-    //     }
-    //
-    //     return files;
-    // }
-
   Future<void> manageServer(String path, String action) async {
     if (action == 'start') {
       await _sshClient.execute('cd $path && nohup java -jar app.jar &');
     } else if (action == 'restart') {
-      await _sshClient.execute('pkill -f java && cd $path && nohup java -jar app.jar &');
+      await _sshClient
+          .execute('pkill -f java && cd $path && nohup java -jar app.jar &');
     } else if (action == 'stop') {
       await _sshClient.execute('pkill -f java');
     }
